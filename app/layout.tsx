@@ -1,0 +1,49 @@
+import type { Metadata } from "next";
+import { Syne, DM_Sans, Space_Mono } from "next/font/google";
+import { Providers } from "./providers";
+import "./globals.css";
+import { cn } from "@/lib/utils";
+
+const syne = Syne({
+  subsets: ["latin"],
+  variable: "--font-syne",
+  weight: ["700", "800"],
+});
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
+  weight: ["400", "500", "600", "700"],
+});
+
+const spaceMono = Space_Mono({
+  subsets: ["latin"],
+  variable: "--font-space-mono",
+  weight: ["400", "700"],
+});
+
+export const metadata: Metadata = {
+  title: "SolVault — Solana NFT Wallet",
+  description: "Production-ready Solana NFT portfolio, transfers, and vault controls.",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en" className="dark">
+      <body
+        className={cn(
+          "min-h-screen bg-[#080B12] font-sans antialiased",
+          syne.variable,
+          dmSans.variable,
+          spaceMono.variable
+        )}
+      >
+        <div className="app-bg" aria-hidden />
+        <div className="orb orb-purple" aria-hidden />
+        <div className="orb orb-green" aria-hidden />
+        <div className="orb orb-blue" aria-hidden />
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  );
+}

@@ -1,0 +1,118 @@
+{
+  "address": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFLSfp",
+  "metadata": {
+    "name": "nft_vault",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "SolVault NFT vault program"
+  },
+  "instructions": [
+    {
+      "name": "deposit_nft",
+      "discriminator": [93, 226, 132, 166, 141, 9, 48, 101],
+      "accounts": [
+        { "name": "owner", "writable": true, "signer": true },
+        { "name": "mint" },
+        { "name": "user_ata", "writable": true },
+        { "name": "vault_entry", "writable": true },
+        { "name": "vault_ata", "writable": true },
+        { "name": "token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": []
+    },
+    {
+      "name": "withdraw_nft",
+      "discriminator": [142, 181, 191, 149, 82, 175, 216, 100],
+      "accounts": [
+        { "name": "owner", "writable": true, "signer": true },
+        { "name": "mint" },
+        { "name": "user_ata", "writable": true },
+        { "name": "vault_entry", "writable": true },
+        { "name": "vault_ata", "writable": true },
+        { "name": "token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": []
+    },
+    {
+      "name": "batch_transfer",
+      "discriminator": [209, 90, 4, 108, 61, 185, 18, 139],
+      "accounts": [
+        { "name": "owner", "writable": true, "signer": true },
+        { "name": "token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": [
+        { "name": "mints", "type": { "vec": "pubkey" } },
+        { "name": "recipients", "type": { "vec": "pubkey" } }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "VaultEntry",
+      "discriminator": [247, 13, 244, 166, 187, 153, 172, 22]
+    }
+  ],
+  "events": [
+    {
+      "name": "BatchTransferEvent",
+      "discriminator": [202, 232, 243, 201, 129, 230, 84, 235]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "NotOwner",
+      "msg": "Signer is not the vault entry owner"
+    },
+    {
+      "code": 6001,
+      "name": "VaultFull",
+      "msg": "Batch size must be between 1 and 5"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidMint",
+      "msg": "Mint does not match vault entry or accounts"
+    },
+    {
+      "code": 6003,
+      "name": "AlreadyDeposited",
+      "msg": "NFT already deposited for this mint"
+    }
+  ],
+  "types": [
+    {
+      "name": "VaultEntry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "owner", "type": "pubkey" },
+          { "name": "mint", "type": "pubkey" },
+          { "name": "deposited_at", "type": "i64" },
+          { "name": "bump", "type": "u8" }
+        ]
+      }
+    },
+    {
+      "name": "BatchTransferEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "mints", "type": { "vec": "pubkey" } },
+          { "name": "recipients", "type": { "vec": "pubkey" } }
+        ]
+      }
+    }
+  ]
+}
