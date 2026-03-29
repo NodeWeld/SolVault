@@ -9,7 +9,9 @@ import {
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { BackpackWalletAdapter } from "@solana/wallet-adapter-backpack";
-import { PhantomWalletAdapter, SolflareWalletAdapter } from "@solana/wallet-adapter-wallets";
+import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
+import { SolflareWalletAdapter } from "@solana/wallet-adapter-solflare";
+import { LazyMotion, domAnimation } from "framer-motion";
 import { clusterApiUrl } from "@solana/web3.js";
 import { getRpcUrl } from "@/lib/solana";
 
@@ -56,7 +58,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <Web3ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
-          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+          <LazyMotion features={domAnimation} strict>
+            <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+          </LazyMotion>
         </WalletModalProvider>
       </WalletProvider>
     </Web3ConnectionProvider>

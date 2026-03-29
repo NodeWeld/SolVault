@@ -5,8 +5,18 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { AddWalletModal } from "@/components/wallet/AddWalletModal";
+import {
+  AddressReceiveDialog,
+  CopyAddressButton,
+} from "@/components/wallet/AddressReceiveDialog";
 import { useWalletStore } from "@/store/walletStore";
 import { cn } from "@/lib/utils";
+
+const activeAddressPanel =
+  "rounded-xl border border-blue-800/50 bg-blue-950/90 p-3 text-solana-green shadow-md shadow-blue-950/30 backdrop-blur-sm";
+
+const activeAddressBtn =
+  "border-blue-700/40 text-solana-green hover:bg-blue-900/50 hover:text-solana-green";
 
 export function Sidebar() {
   const { publicKey } = useWallet();
@@ -15,6 +25,7 @@ export function Sidebar() {
   const setActiveWallet = useWalletStore((s) => s.setActiveWallet);
   const removeWallet = useWalletStore((s) => s.removeWallet);
   const primary = publicKey?.toBase58() ?? null;
+  const receiveAddress = activeWallet ?? primary;
 
   return (
     <aside className="hidden w-64 shrink-0 border-r border-border-subtle bg-[#080B12]/60 lg:block">
@@ -26,6 +37,29 @@ export function Sidebar() {
           <AddWalletModal />
         </div>
         <Separator className="bg-border-subtle" />
+        {receiveAddress ? (
+          <div className={activeAddressPanel}>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-solana-green/80">
+              Active address
+            </p>
+            <p className="mb-3 break-all font-mono text-[10px] leading-relaxed text-solana-green/70">
+              {receiveAddress}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              <CopyAddressButton
+                address={receiveAddress}
+                size="sm"
+                className={cn("flex-1 text-xs", activeAddressBtn)}
+              />
+              <AddressReceiveDialog
+                address={receiveAddress}
+                triggerLabel="QR"
+                size="sm"
+                triggerClassName={cn("flex-1 text-xs", activeAddressBtn)}
+              />
+            </div>
+          </div>
+        ) : null}
         <ScrollArea className="h-[calc(100vh-12rem)] pr-2">
           <ul className="space-y-1">
             {wallets.map((w) => {

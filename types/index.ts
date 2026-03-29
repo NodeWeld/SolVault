@@ -7,6 +7,8 @@ export interface NFT {
   mint: string;
   name: string;
   collection: string | null;
+  /** Human-readable collection name when Helius/metadata provides it; filter key remains `collection` (id). */
+  collectionName: string | null;
   image: string | null;
   symbol: string | null;
   attributes: NFTAttribute[];
@@ -52,4 +54,13 @@ export interface BatchSendProgress {
   sent: number;
   total: number;
   errors: { mint: string; message: string }[];
+}
+
+/** Parsed SPL token account (fungible); excludes classic 1/0 NFT pattern. */
+export interface SplTokenBalance {
+  ata: string;
+  mint: string;
+  amountRaw: string;
+  decimals: number;
+  uiAmount: string;
 }

@@ -5,11 +5,16 @@ const DAS_METHOD = "getAssetsByOwner";
 export interface HeliusAsset {
   id: string;
   interface?: string;
+  /** Present when DAS `showCollectionMetadata` is enabled. */
+  collection?: { name?: string; symbol?: string; image?: string };
   content?: {
     metadata?: {
       name?: string;
       symbol?: string;
       attributes?: NFTAttribute[];
+      /** On-chain JSON: `{ name, family }` or `{ key, verified }`. */
+      collection?: unknown;
+      family?: string;
     };
     links?: { image?: string };
     json_uri?: string;
@@ -33,6 +38,22 @@ function pickCollection(asset: HeliusAsset): string | null {
   if (!g?.length) return null;
   const col = g.find((x) => x.group_key === "collection");
   return col?.group_value ?? null;
+}
+
+function pickCollectionName(asset: HeliusAsset): string | null {
+  const fromDas = asset.collection?.name?.trim();
+  if (fromDas) return fromDas;
+
+  const mc = asset.content?.metadata?.collection;
+  if (mc && typeof mc === "object" && mc !== null) {
+    const n = (mc as Record<string, unknown>).name;
+    if (typeof n === "string" && n.trim()) return n.trim();
+  }
+
+  const fam = asset.content?.metadata?.family;
+  if (typeof fam === "string" && fam.trim()) return fam.trim();
+
+  return null;
 }
 
 function pickImage(asset: HeliusAsset): string | null {
@@ -64,6 +85,7 @@ export function mapHeliusAssetToNFT(asset: HeliusAsset): NFT {
     mint: asset.id,
     name: pickName(asset),
     collection: pickCollection(asset),
+    collectionName: pickCollectionName(asset),
     image: pickImage(asset),
     symbol: meta?.symbol ?? null,
     attributes: Array.isArray(meta?.attributes) ? meta.attributes : [],
@@ -72,30 +94,48 @@ export function mapHeliusAssetToNFT(asset: HeliusAsset): NFT {
   };
 }
 
-function extractItems(json: unknown): HeliusAsset[] {
-  if (!json || typeof json !== "object") return [];
+export const HELIUS_NFT_PAGE_SIZE = 100;
+
+function parseDasResult(json: unknown): {
+  items: HeliusAsset[];
+  page: number;
+  limit: number;
+  total?: number;
+} {
+  if (!json || typeof json !== "object") {
+    return { items: [], page: 1, limit: HELIUS_NFT_PAGE_SIZE };
+  }
   const o = json as { result?: unknown };
   const r = o.result;
-  if (!r || typeof r !== "object") return [];
-  const res = r as { items?: unknown };
-  if (!Array.isArray(res.items)) return [];
-  return res.items as HeliusAsset[];
+  if (!r || typeof r !== "object") {
+    return { items: [], page: 1, limit: HELIUS_NFT_PAGE_SIZE };
+  }
+  const res = r as {
+    items?: unknown;
+    page?: unknown;
+    limit?: unknown;
+    total?: unknown;
+  };
+  const items = Array.isArray(res.items) ? (res.items as HeliusAsset[]) : [];
+  const page = typeof res.page === "number" && res.page >= 1 ? res.page : 1;
+  const limit =
+    typeof res.limit === "number" && res.limit > 0 ? res.limit : HELIUS_NFT_PAGE_SIZE;
+  const total = typeof res.total === "number" && res.total >= 0 ? res.total : undefined;
+  return { items, page, limit, total };
 }
 
-export async function fetchAssetsByOwner(
-  ownerAddress: string,
-  rpcUrl: string
-): Promise<NFT[]> {
+async function postDas(ownerAddress: string, rpcUrl: string, page: number, limit: number) {
   const body = {
     jsonrpc: "2.0",
     id: "solvault-das",
     method: DAS_METHOD,
     params: {
       ownerAddress,
-      page: 1,
-      limit: 1000,
+      page,
+      limit,
       options: {
         showFungible: false,
+        showCollectionMetadata: true,
       },
     },
   };
@@ -125,6 +165,40 @@ export async function fetchAssetsByOwner(
     );
   }
 
-  const items = extractItems(json);
-  return items.map(mapHeliusAssetToNFT);
+  return parseDasResult(json);
+}
+
+export interface FetchNftsPageResult {
+  nfts: NFT[];
+  page: number;
+  limit: number;
+  total?: number;
+}
+
+export async function fetchAssetsByOwnerPage(
+  ownerAddress: string,
+  rpcUrl: string,
+  page: number = 1,
+  limit: number = HELIUS_NFT_PAGE_SIZE
+): Promise<FetchNftsPageResult> {
+  const safePage = Math.max(1, Math.floor(page));
+  const safeLimit = Math.min(1000, Math.max(1, Math.floor(limit)));
+  const { items, page: p, limit: l, total } = await postDas(
+    ownerAddress,
+    rpcUrl,
+    safePage,
+    safeLimit
+  );
+  return {
+    nfts: items.map(mapHeliusAssetToNFT),
+    page: p,
+    limit: l,
+    total,
+  };
+}
+
+/** @deprecated Prefer paginated `fetchAssetsByOwnerPage`; kept for one-shot callers. */
+export async function fetchAssetsByOwner(ownerAddress: string, rpcUrl: string): Promise<NFT[]> {
+  const { nfts } = await fetchAssetsByOwnerPage(ownerAddress, rpcUrl, 1, 1000);
+  return nfts;
 }

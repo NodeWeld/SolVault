@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import confetti from "canvas-confetti";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import type { NFT } from "@/types";
 import {
   Dialog,
@@ -18,8 +18,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSendNFT } from "@/hooks/useSendNFT";
+import { useSendCompressedNft } from "@/hooks/useSendCompressedNft";
 import { solscanTxUrl } from "@/lib/solscan";
 import { Loader2 } from "lucide-react";
+import { collectionDisplayLabel } from "@/lib/nft-filters";
 
 function validateRecipient(input: string): string | null {
   const t = input.trim();
@@ -41,9 +43,12 @@ interface SendModalProps {
 
 export function SendModal({ nft, open, onClose, senderAddress }: SendModalProps) {
   const wallet = useWallet();
-  const mutation = useSendNFT();
-  const resetMutationRef = useRef(mutation.reset);
-  resetMutationRef.current = mutation.reset;
+  const legacySend = useSendNFT();
+  const cnftSend = useSendCompressedNft();
+  const resetLegacyRef = useRef(legacySend.reset);
+  const resetCnftRef = useRef(cnftSend.reset);
+  resetLegacyRef.current = legacySend.reset;
+  resetCnftRef.current = cnftSend.reset;
   const [recipient, setRecipient] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [phase, setPhase] = useState<"form" | "success">("form");
@@ -55,9 +60,12 @@ export function SendModal({ nft, open, onClose, senderAddress }: SendModalProps)
       setError(null);
       setPhase("form");
       setSig(null);
-      resetMutationRef.current();
+      resetLegacyRef.current();
+      resetCnftRef.current();
     }
   }, [open]);
+
+  const sending = legacySend.isPending || cnftSend.isPending;
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -67,24 +75,31 @@ export function SendModal({ nft, open, onClose, senderAddress }: SendModalProps)
       return;
     }
     setError(null);
-    mutation.mutate(
-      {
-        mint: nft.mint,
-        recipient: recipient.trim(),
-        wallet,
-        senderAddress,
-      },
-      {
-        onSuccess: (data) => {
-          setSig(data.signature);
-          setPhase("success");
-          void confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
+    const onSuccess = (data: { signature: string }) => {
+      setSig(data.signature);
+      setPhase("success");
+      void confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
+    };
+    const showError = (err: unknown) => {
+      setError(err instanceof Error ? err.message : String(err));
+    };
+
+    if (nft.compressed) {
+      cnftSend.mutate(
+        { assetId: nft.mint, recipient: recipient.trim(), senderAddress },
+        { onSuccess, onError: showError }
+      );
+    } else {
+      legacySend.mutate(
+        {
+          mint: nft.mint,
+          recipient: recipient.trim(),
+          wallet,
+          senderAddress,
         },
-        onError: (err) => {
-          setError(err instanceof Error ? err.message : String(err));
-        },
-      }
-    );
+        { onSuccess, onError: showError }
+      );
+    }
   }
 
   const feeSol = 5000 / LAMPORTS_PER_SOL;
@@ -94,7 +109,7 @@ export function SendModal({ nft, open, onClose, senderAddress }: SendModalProps)
       <DialogContent>
         <AnimatePresence mode="wait">
           {phase === "form" ? (
-            <motion.form
+            <m.form
               key="form"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -104,8 +119,9 @@ export function SendModal({ nft, open, onClose, senderAddress }: SendModalProps)
               <DialogHeader>
                 <DialogTitle>Send NFT</DialogTitle>
                 <DialogDescription>
-                  Transfer this NFT to another Solana wallet. You will approve one transaction in
-                  your wallet.
+                  {nft.compressed
+                    ? "Transfer this compressed NFT via Metaplex Bubblegum (Helius DAS proofs). Approve one transaction in your wallet."
+                    : "Transfer this NFT to another Solana wallet. You will approve one transaction in your wallet."}
                 </DialogDescription>
               </DialogHeader>
               <div className="mt-2 flex gap-3 rounded-lg border border-border-subtle bg-surface/50 p-3">
@@ -118,7 +134,7 @@ export function SendModal({ nft, open, onClose, senderAddress }: SendModalProps)
                 <div className="min-w-0">
                   <p className="truncate font-semibold">{nft.name}</p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {nft.collection ?? "Uncategorized"}
+                    {collectionDisplayLabel(nft)}
                   </p>
                 </div>
               </div>
@@ -141,8 +157,8 @@ export function SendModal({ nft, open, onClose, senderAddress }: SendModalProps)
                 {error ? <p className="text-sm text-red-400">{error}</p> : null}
               </div>
               <DialogFooter>
-                <Button type="submit" disabled={mutation.isPending}>
-                  {mutation.isPending ? (
+                <Button type="submit" disabled={sending}>
+                  {sending ? (
                     <>
                       <Loader2 className="animate-spin" />
                       Awaiting wallet signature…
@@ -152,9 +168,9 @@ export function SendModal({ nft, open, onClose, senderAddress }: SendModalProps)
                   )}
                 </Button>
               </DialogFooter>
-            </motion.form>
+            </m.form>
           ) : (
-            <motion.div
+            <m.div
               key="done"
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -182,7 +198,7 @@ export function SendModal({ nft, open, onClose, senderAddress }: SendModalProps)
                   Close
                 </Button>
               </DialogFooter>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
       </DialogContent>

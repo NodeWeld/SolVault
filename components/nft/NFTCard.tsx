@@ -1,11 +1,11 @@
 "use client";
 
-import { motion } from "framer-motion";
 import type { NFT } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useWalletStore } from "@/store/walletStore";
+import { collectionDisplayLabel } from "@/lib/nft-filters";
 
 interface NFTCardProps {
   nft: NFT;
@@ -18,10 +18,10 @@ export function NFTCard({ nft, onOpen, selectionEnabled = true }: NFTCardProps) 
   const selected = useWalletStore((s) => s.selectedNFTs.includes(nft.mint));
 
   return (
-    <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+    <div className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300">
       <Card
         className={cn(
-          "group cursor-pointer overflow-hidden border-border-subtle transition-shadow hover:border-solana-purple/40 hover:shadow-lg hover:shadow-solana-purple/10",
+          "group cursor-pointer overflow-hidden border-solana-purple/45 transition-shadow hover:border-solana-purple hover:shadow-lg hover:shadow-solana-purple/15",
           selected && "ring-2 ring-solana-green/60"
         )}
         onClick={() => onOpen(nft)}
@@ -60,13 +60,15 @@ export function NFTCard({ nft, onOpen, selectionEnabled = true }: NFTCardProps) 
             </button>
           ) : null}
         </div>
-        <CardContent className="space-y-1 p-3">
-          <p className="truncate font-display text-sm font-bold">{nft.name}</p>
-          <p className="truncate text-xs text-muted-foreground">
-            {nft.collection ?? "Uncategorized"}
+        <CardContent className="space-y-1 border-t border-blue-800/50 bg-blue-950/90 p-3 backdrop-blur-sm">
+          <p className="truncate font-display text-sm font-bold text-solana-green">
+            {nft.name}
+          </p>
+          <p className="truncate text-xs text-solana-green/65">
+            {collectionDisplayLabel(nft)}
           </p>
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   );
 }

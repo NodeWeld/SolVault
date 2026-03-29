@@ -3,7 +3,7 @@
 import type { NFT } from "@/types";
 import { Button } from "@/components/ui/button";
 import { useWalletStore } from "@/store/walletStore";
-import { uniqueCollections, uniqueRarities } from "@/lib/nft-filters";
+import { uniqueCollectionOptions, uniqueRarities } from "@/lib/nft-filters";
 import { cn } from "@/lib/utils";
 
 const panel =
@@ -21,7 +21,7 @@ interface FilterBarProps {
 export function FilterBar({ nfts }: FilterBarProps) {
   const filter = useWalletStore((s) => s.filter);
   const setFilter = useWalletStore((s) => s.setFilter);
-  const cols = uniqueCollections(nfts);
+  const cols = uniqueCollectionOptions(nfts);
   const rarities = uniqueRarities(nfts);
 
   return (
@@ -39,16 +39,17 @@ export function FilterBar({ nfts }: FilterBarProps) {
         >
           All collections
         </Button>
-        {cols.map((c) => (
+        {cols.map(({ id, label }) => (
           <Button
-            key={c}
+            key={id}
             type="button"
             size="sm"
             variant="outline"
-            className={cn(filterBtn, filter.collection === c && filterBtnActive)}
-            onClick={() => setFilter({ collection: c })}
+            className={cn(filterBtn, filter.collection === id && filterBtnActive)}
+            onClick={() => setFilter({ collection: id })}
+            title={id}
           >
-            {c}
+            {label}
           </Button>
         ))}
       </div>

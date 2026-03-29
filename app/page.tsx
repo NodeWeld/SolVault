@@ -1,23 +1,54 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { motion } from "framer-motion";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { StatsRow } from "@/components/dashboard/StatsRow";
 import { FilterBar } from "@/components/dashboard/FilterBar";
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { TokensPanel } from "@/components/dashboard/TokensPanel";
 import { NFTGrid } from "@/components/nft/NFTGrid";
-import { NFTDetail } from "@/components/nft/NFTDetail";
-import { BatchSendModal } from "@/components/transfer/BatchSendModal";
-import { ImportModal } from "@/components/transfer/ImportModal";
 import { Button } from "@/components/ui/button";
 import { WalletButton } from "@/components/wallet/WalletButton";
-import { useNFTs } from "@/hooks/useNFTs";
+import { useNFTs, flattenNftPages } from "@/hooks/useNFTs";
 import { useWalletStore } from "@/store/walletStore";
 import { applyNFTFilters } from "@/lib/nft-filters";
 import type { NFT } from "@/types";
+
+const ActivityFeed = dynamic(
+  () =>
+    import("@/components/dashboard/ActivityFeed").then((m) => ({
+      default: m.ActivityFeed,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="h-[min(24rem,50vh)] animate-pulse rounded-xl border border-blue-800/50 bg-blue-950/40"
+        aria-hidden
+      />
+    ),
+  }
+);
+
+const NFTDetail = dynamic(
+  () => import("@/components/nft/NFTDetail").then((m) => ({ default: m.NFTDetail })),
+  { ssr: false }
+);
+
+const BatchSendModal = dynamic(
+  () =>
+    import("@/components/transfer/BatchSendModal").then((m) => ({
+      default: m.BatchSendModal,
+    })),
+  { ssr: false }
+);
+
+const ImportModal = dynamic(
+  () => import("@/components/transfer/ImportModal").then((m) => ({ default: m.ImportModal })),
+  { ssr: false }
+);
 
 export default function HomePage() {
   const { connected, publicKey } = useWallet();
@@ -28,12 +59,16 @@ export default function HomePage() {
   const primary = publicKey?.toBase58() ?? null;
   const viewAddress = activeWallet ?? primary;
 
+  const nftsQuery = useNFTs(viewAddress);
+  const nfts = useMemo(() => flattenNftPages(nftsQuery.data), [nftsQuery.data]);
   const {
-    data: nfts = [],
     isLoading,
     error: nftsError,
     isError: nftsIsError,
-  } = useNFTs(viewAddress);
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = nftsQuery;
   const filtered = useMemo(() => applyNFTFilters(nfts, filter), [nfts, filter]);
 
   const [detail, setDetail] = useState<NFT | null>(null);
@@ -44,12 +79,7 @@ export default function HomePage() {
       <div className="min-h-screen">
         <Header />
         <main className="mx-auto flex max-w-4xl flex-col items-center justify-center px-4 py-24 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="space-y-6"
-          >
+          <div className="space-y-6 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-500">
             <h1 className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl">
               Your Solana NFTs,{" "}
               <span className="text-solana-purple">secured</span> and{" "}
@@ -62,7 +92,7 @@ export default function HomePage() {
             <div className="flex justify-center">
               <WalletButton />
             </div>
-          </motion.div>
+          </div>
         </main>
       </div>
     );
@@ -118,8 +148,18 @@ export default function HomePage() {
               loading={isLoading}
               onOpen={setDetail}
               selectionEnabled={viewAddress === primary}
+              onLoadMore={() => void fetchNextPage()}
+              hasMoreNfts={Boolean(hasNextPage)}
+              loadingMoreNfts={isFetchingNextPage}
             />
-            <ActivityFeed address={viewAddress} />
+            <div className="flex flex-col gap-6">
+              <TokensPanel
+                viewAddress={viewAddress}
+                canSend={Boolean(primary && viewAddress === primary)}
+                senderAddress={primary ?? ""}
+              />
+              <ActivityFeed address={viewAddress} />
+            </div>
           </div>
         </main>
       </div>

@@ -2,9 +2,12 @@
 
 import { useEffect } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { motion } from "framer-motion";
 import { WalletButton } from "@/components/wallet/WalletButton";
 import { WalletBadge } from "@/components/wallet/WalletBadge";
+import {
+  AddressReceiveDialog,
+  CopyAddressButton,
+} from "@/components/wallet/AddressReceiveDialog";
 import { useSolPrice } from "@/hooks/useSolPrice";
 import { useWalletStore } from "@/store/walletStore";
 
@@ -30,16 +33,12 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-border-subtle bg-[#080B12]/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
-        <motion.div
-          className="flex items-center gap-2"
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
+        <div className="flex items-center gap-2 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-300">
           <div className="font-display text-xl font-extrabold tracking-tight">
             <span className="text-solana-purple">Sol</span>
             <span className="text-solana-green">Vault</span>
           </div>
-        </motion.div>
+        </div>
 
         <div className="flex flex-1 items-center justify-end gap-3">
           {price?.usd != null ? (
@@ -54,6 +53,12 @@ export function Header() {
                 </span>
               ) : null}
             </div>
+          ) : null}
+          {connectedAddress ? (
+            <>
+              <CopyAddressButton address={connectedAddress} size="icon" className="shrink-0" />
+              <AddressReceiveDialog address={connectedAddress} />
+            </>
           ) : null}
           <WalletBadge />
           <WalletButton />

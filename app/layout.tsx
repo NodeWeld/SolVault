@@ -7,18 +7,25 @@ import { cn } from "@/lib/utils";
 const syne = Syne({
   subsets: ["latin"],
   variable: "--font-syne",
+  display: "swap",
+  preload: true,
   weight: ["700", "800"],
 });
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
   variable: "--font-dm-sans",
+  display: "swap",
+  preload: true,
   weight: ["400", "500", "600", "700"],
 });
 
 const spaceMono = Space_Mono({
   subsets: ["latin"],
   variable: "--font-space-mono",
+  display: "swap",
+  preload: false,
+  adjustFontFallback: true,
   weight: ["400", "700"],
 });
 

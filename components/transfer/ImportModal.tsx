@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useWalletStore } from "@/store/walletStore";
-import { useNFTs } from "@/hooks/useNFTs";
+import { useNFTs, flattenNftPages } from "@/hooks/useNFTs";
 import { useBatchSend } from "@/hooks/useBatchSend";
 import { Loader2 } from "lucide-react";
 import type { NFT } from "@/types";
@@ -44,7 +44,9 @@ export function ImportModal() {
   const [picked, setPicked] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const { data: sourceNfts = [], isLoading } = useNFTs(source);
+  const sourceNftQuery = useNFTs(source);
+  const sourceNfts = useMemo(() => flattenNftPages(sourceNftQuery.data), [sourceNftQuery.data]);
+  const { isLoading, hasNextPage, isFetchingNextPage, fetchNextPage } = sourceNftQuery;
   const wallet = useWallet();
   const batch = useBatchSend();
 
@@ -208,6 +210,26 @@ export function ImportModal() {
                 )}
               </div>
             </ScrollArea>
+
+            {hasNextPage ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full"
+                disabled={isFetchingNextPage}
+                onClick={() => void fetchNextPage()}
+              >
+                {isFetchingNextPage ? (
+                  <>
+                    <Loader2 className="animate-spin" />
+                    Loading more…
+                  </>
+                ) : (
+                  "Load more NFTs from source"
+                )}
+              </Button>
+            ) : null}
 
             {error ? <p className="text-sm text-red-400">{error}</p> : null}
           </div>

@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAddressBalance } from "@/hooks/useAddressBalance";
 import { useFloorPrice } from "@/hooks/useFloorPrice";
 import { useWalletStore } from "@/store/walletStore";
-import { applyNFTFilters } from "@/lib/nft-filters";
+import { applyNFTFilters, labelForCollectionFilter } from "@/lib/nft-filters";
 import type { NFT } from "@/types";
 
 const panel =
@@ -36,9 +36,9 @@ export function StatsRow({ viewAddress, nfts }: StatsRowProps) {
           <p className="mt-1 font-mono text-2xl font-bold text-solana-green">
             {bal?.sol != null ? bal.sol.toFixed(4) : "—"}
           </p>
-          <p className="text-xs text-solana-green/65">
-            {bal?.usd != null ? `≈ $${bal.usd.toFixed(2)} USD` : "Price loading…"}
-          </p>
+          {bal?.usd != null ? (
+            <p className="text-xs text-solana-green/65">≈ ${bal.usd.toFixed(2)} USD</p>
+          ) : null}
         </CardContent>
       </Card>
       <Card className={panel}>
@@ -62,7 +62,7 @@ export function StatsRow({ viewAddress, nfts }: StatsRowProps) {
           </p>
           <p className="text-xs text-solana-green/65">
             {filter.collection
-              ? `Magic Eden floor for ${filter.collection}`
+              ? `Magic Eden floor for ${labelForCollectionFilter(nfts, filter.collection)}`
               : "Select a collection filter to estimate"}
           </p>
         </CardContent>

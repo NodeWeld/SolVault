@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import type { NFT } from "@/types";
 import {
   Dialog,
@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { SendModal } from "@/components/transfer/SendModal";
 import { useVaultProgram } from "@/hooks/useVaultProgram";
+import { collectionDisplayLabel } from "@/lib/nft-filters";
 
 interface NFTDetailProps {
   nft: NFT | null;
@@ -74,7 +75,7 @@ export function NFTDetail({
         <DialogContent className="max-w-lg border-border-subtle bg-[#0c101a]">
           <AnimatePresence mode="wait">
             {nft ? (
-              <motion.div
+              <m.div
                 key={nft.mint}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -103,7 +104,11 @@ export function NFTDetail({
                   </div>
                   <div className="space-y-3 text-sm">
                     <div className="flex flex-wrap gap-2">
-                      {nft.collection ? <Badge variant="outline">{nft.collection}</Badge> : null}
+                      {nft.collection ? (
+                        <Badge variant="outline" title={nft.collection}>
+                          {collectionDisplayLabel(nft)}
+                        </Badge>
+                      ) : null}
                       {nft.symbol ? <Badge variant="secondary">{nft.symbol}</Badge> : null}
                       {nft.compressed ? <Badge>cNFT</Badge> : null}
                     </div>
@@ -130,15 +135,15 @@ export function NFTDetail({
                       <Button
                         type="button"
                         onClick={() => setSendOpen(true)}
-                        disabled={!canAct || nft.compressed}
+                        disabled={!canAct}
                         className="w-full"
                       >
                         Send NFT
                       </Button>
                       {nft.compressed ? (
                         <p className="text-[11px] text-muted-foreground">
-                          Compressed NFT transfers require a dedicated workflow; SPL-token send is
-                          disabled here.
+                          cNFT: transfer uses Bubblegum + DAS proofs (Helius RPC). Vault deposit/withdraw
+                          may not apply to compressed assets.
                         </p>
                       ) : null}
                       {showVault ? (
@@ -172,7 +177,7 @@ export function NFTDetail({
                     </div>
                   </div>
                 </div>
-              </motion.div>
+              </m.div>
             ) : null}
           </AnimatePresence>
         </DialogContent>

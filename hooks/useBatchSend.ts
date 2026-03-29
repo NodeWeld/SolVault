@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { PublicKey } from "@solana/web3.js";
 import type { WalletContextState } from "@solana/wallet-adapter-react";
 import { buildVersionedBatchForMints, chunkMints, MAX_MINTS_PER_TX } from "@/lib/batch";
+import { simulateVersionedTransaction } from "@/lib/simulate-transaction";
 import type { BatchSendProgress } from "@/types";
 
 function delay(ms: number) {
@@ -59,6 +60,20 @@ export function useBatchSend() {
 
       for (let i = 0; i < versionedTxs.length; i++) {
         const batch = batches[i] ?? [];
+        const vtx = versionedTxs[i];
+        if (!vtx) continue;
+        const txToSim = signedTxs?.[i] ?? vtx;
+        try {
+          await simulateVersionedTransaction(connection, txToSim);
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          batch.forEach((pk) => {
+            progress.errors.push({ mint: pk.toBase58(), message: msg });
+          });
+          onProgress?.({ ...progress, errors: [...progress.errors] });
+          if (i < versionedTxs.length - 1) await delay(400);
+          continue;
+        }
         try {
           let sig: string;
           if (signedTxs?.[i]) {

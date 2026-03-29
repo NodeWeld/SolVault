@@ -4,34 +4,48 @@ import { useConnection } from "@solana/wallet-adapter-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { PublicKey } from "@solana/web3.js";
 import type { WalletContextState } from "@solana/wallet-adapter-react";
-import { buildNftTransferTransaction } from "@/lib/transfer";
+import {
+  buildFungibleSplTransferTransaction,
+  parseTokenAmountToRaw,
+} from "@/lib/sol-transfer";
 import { simulateLegacyTransaction } from "@/lib/simulate-transaction";
 
-export interface SendNFTParams {
+export interface SendSplTokenParams {
   mint: string;
   recipient: string;
+  amountUi: string;
+  decimals: number;
   wallet: WalletContextState;
   senderAddress: string;
 }
 
-export function useSendNFT() {
+export function useSendSplToken() {
   const { connection } = useConnection();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ mint, recipient, wallet, senderAddress }: SendNFTParams) => {
+    mutationFn: async ({
+      mint,
+      recipient,
+      amountUi,
+      decimals,
+      wallet,
+      senderAddress,
+    }: SendSplTokenParams) => {
       const { publicKey, sendTransaction } = wallet;
       if (!publicKey) throw new Error("Wallet not connected");
       if (!sendTransaction) throw new Error("Wallet cannot send transactions");
 
       const mintPk = new PublicKey(mint);
-      const recipientPk = new PublicKey(recipient);
+      const recipientPk = new PublicKey(recipient.trim());
+      const amountRaw = parseTokenAmountToRaw(amountUi, decimals);
 
-      const tx = await buildNftTransferTransaction({
+      const tx = await buildFungibleSplTransferTransaction({
         connection,
         mint: mintPk,
         sender: publicKey,
         recipient: recipientPk,
+        amountRaw,
         feePayer: publicKey,
       });
 
@@ -52,7 +66,8 @@ export function useSendNFT() {
       return { signature: sig };
     },
     onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: ["nfts", variables.senderAddress] });
+      void queryClient.invalidateQueries({ queryKey: ["spl-tokens", variables.senderAddress] });
+      void queryClient.invalidateQueries({ queryKey: ["address-balance", variables.senderAddress] });
     },
   });
 }
