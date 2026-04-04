@@ -1,8 +1,22 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import { Syne, DM_Sans, Space_Mono } from "next/font/google";
-import { Providers } from "./providers";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+
+/** Code-split wallet + React Query so `app/layout` chunk stays small (avoids ChunkLoadError timeouts). */
+const Providers = dynamic(() => import("./providers").then((m) => ({ default: m.Providers })), {
+  loading: () => (
+    <div
+      className="flex min-h-[50vh] items-center justify-center text-sm text-muted-foreground"
+      aria-busy="true"
+      aria-label="Loading app"
+    >
+      Loading…
+    </div>
+  ),
+  ssr: true,
+});
 
 const syne = Syne({
   subsets: ["latin"],

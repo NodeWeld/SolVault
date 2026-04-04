@@ -196,7 +196,12 @@ export function ImportModal() {
                         <div className="aspect-square bg-black/40">
                           {n.image ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={n.image} alt="" className="h-full w-full object-cover" />
+                            <img
+                              src={n.image}
+                              alt=""
+                              referrerPolicy="no-referrer"
+                              className="h-full w-full object-cover"
+                            />
                           ) : null}
                         </div>
                         <div className="truncate p-1">{n.name}</div>

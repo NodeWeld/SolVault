@@ -3,6 +3,8 @@ import type { NFT, NFTFilter } from "@/types";
 export interface CollectionOption {
   id: string;
   label: string;
+  /** NFTs in this wallet load belonging to this collection id. */
+  count: number;
 }
 
 export function shortCollectionId(id: string): string {
@@ -47,9 +49,11 @@ export function applyNFTFilters(nfts: NFT[], filter: NFTFilter): NFT[] {
 export function uniqueCollectionOptions(nfts: NFT[]): CollectionOption[] {
   const ids = new Set<string>();
   const bestName = new Map<string, string>();
+  const counts = new Map<string, number>();
   for (const n of nfts) {
     if (!n.collection) continue;
     ids.add(n.collection);
+    counts.set(n.collection, (counts.get(n.collection) ?? 0) + 1);
     const c = n.collectionName?.trim();
     if (!c) continue;
     const prev = bestName.get(n.collection);
@@ -58,11 +62,46 @@ export function uniqueCollectionOptions(nfts: NFT[]): CollectionOption[] {
   const options: CollectionOption[] = [...ids].map((id) => ({
     id,
     label: bestName.get(id) ?? shortCollectionId(id),
+    count: counts.get(id) ?? 0,
   }));
   options.sort((a, b) =>
     a.label.localeCompare(b.label, undefined, { sensitivity: "base" })
   );
   return options;
+}
+
+/**
+ * Primary title + optional edition for cards: strips trailing `#123` from name when present,
+ * otherwise checks common metadata traits.
+ */
+export function nftCardDisplayParts(nft: NFT): {
+  title: string;
+  collectionLine: string;
+} {
+  const name = nft.name.trim();
+  const hashEnd = name.match(/^(.+?)\s*#(\d+)\s*$/);
+  let title = name;
+  let editionToken: string | null = null;
+  if (hashEnd) {
+    const base = hashEnd[1].trim();
+    title = base || name;
+    editionToken = `#${hashEnd[2]}`;
+  } else {
+    const traitKeys = ["edition", "edition number", "token id", "mint number", "#", "number"];
+    for (const k of traitKeys) {
+      const a = nft.attributes.find((t) => t.trait_type.toLowerCase() === k);
+      if (a == null) continue;
+      const v = String(a.value).trim();
+      if (!v) continue;
+      editionToken = /^\d+$/.test(v) ? `#${v}` : v;
+      break;
+    }
+  }
+
+  const col = collectionDisplayLabel(nft);
+  const collectionLine = editionToken ? `${col} · ${editionToken}` : col;
+
+  return { title, collectionLine };
 }
 
 export function uniqueRarities(nfts: NFT[]): string[] {

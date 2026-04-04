@@ -5,17 +5,25 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useWalletStore } from "@/store/walletStore";
-import { collectionDisplayLabel } from "@/lib/nft-filters";
+import { nftCardDisplayParts } from "@/lib/nft-filters";
 
 interface NFTCardProps {
   nft: NFT;
   onOpen: (nft: NFT) => void;
   selectionEnabled?: boolean;
+  /** Mainnet Magic Eden “offers received” hint (best-effort). */
+  hasOffer?: boolean;
 }
 
-export function NFTCard({ nft, onOpen, selectionEnabled = true }: NFTCardProps) {
+export function NFTCard({
+  nft,
+  onOpen,
+  selectionEnabled = true,
+  hasOffer = false,
+}: NFTCardProps) {
   const toggleNFT = useWalletStore((s) => s.toggleNFT);
   const selected = useWalletStore((s) => s.selectedNFTs.includes(nft.mint));
+  const { title, collectionLine } = nftCardDisplayParts(nft);
 
   return (
     <div className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300">
@@ -31,7 +39,8 @@ export function NFTCard({ nft, onOpen, selectionEnabled = true }: NFTCardProps) 
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={nft.image}
-              alt={nft.name}
+              alt={title}
+              referrerPolicy="no-referrer"
               className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
             />
           ) : (
@@ -42,6 +51,11 @@ export function NFTCard({ nft, onOpen, selectionEnabled = true }: NFTCardProps) 
           {nft.compressed ? (
             <Badge className="absolute left-2 top-2" variant="secondary">
               cNFT
+            </Badge>
+          ) : null}
+          {hasOffer ? (
+            <Badge className="absolute bottom-2 left-2 border-amber-500/50 bg-amber-950/90 text-amber-100">
+              Offer
             </Badge>
           ) : null}
           {selectionEnabled ? (
@@ -61,11 +75,11 @@ export function NFTCard({ nft, onOpen, selectionEnabled = true }: NFTCardProps) 
           ) : null}
         </div>
         <CardContent className="space-y-1 border-t border-blue-800/50 bg-blue-950/90 p-3 backdrop-blur-sm">
-          <p className="truncate font-display text-sm font-bold text-solana-green">
-            {nft.name}
+          <p className="truncate font-display text-sm font-bold text-solana-green" title={nft.name}>
+            {title}
           </p>
-          <p className="truncate text-xs text-solana-green/65">
-            {collectionDisplayLabel(nft)}
+          <p className="truncate text-xs text-solana-green/65" title={collectionLine}>
+            {collectionLine}
           </p>
         </CardContent>
       </Card>

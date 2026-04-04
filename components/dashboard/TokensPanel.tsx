@@ -8,6 +8,7 @@ import { useAddressBalance } from "@/hooks/useAddressBalance";
 import { useSplTokens } from "@/hooks/useSplTokens";
 import { SendSolModal } from "@/components/transfer/SendSolModal";
 import { SendSplModal } from "@/components/transfer/SendSplModal";
+import { CloseEmptySplModal } from "@/components/transfer/CloseEmptySplModal";
 import type { SplTokenBalance } from "@/types";
 
 const panel =
@@ -30,6 +31,7 @@ export function TokensPanel({ viewAddress, canSend, senderAddress }: TokensPanel
   const [solOpen, setSolOpen] = useState(false);
   const [splToken, setSplToken] = useState<SplTokenBalance | null>(null);
   const [splOpen, setSplOpen] = useState(false);
+  const [closeEmptyOpen, setCloseEmptyOpen] = useState(false);
 
   const maxSolSendHint = useMemo(() => {
     if (bal?.lamports == null) return undefined;
@@ -119,6 +121,25 @@ export function TokensPanel({ viewAddress, canSend, senderAddress }: TokensPanel
               ))}
             </ul>
           )}
+
+          {canSend ? (
+            <div className="border-t border-blue-800/40 pt-3">
+              <p className="text-[11px] leading-relaxed text-amber-200/85">
+                <span className="font-semibold text-amber-200">Advanced:</span> reclaim rent from SPL
+                token accounts that report zero balance (classic Token program only, not Token-2022).
+                Wrong confirmations can destroy funds—only proceed if you understand token accounts.
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="mt-2 border-amber-700/45 text-amber-100 hover:bg-amber-950/35"
+                onClick={() => setCloseEmptyOpen(true)}
+              >
+                Close empty SPL accounts…
+              </Button>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -136,6 +157,11 @@ export function TokensPanel({ viewAddress, canSend, senderAddress }: TokensPanel
           setSplToken(null);
         }}
         senderAddress={senderAddress}
+      />
+      <CloseEmptySplModal
+        open={closeEmptyOpen}
+        onOpenChange={setCloseEmptyOpen}
+        ownerAddress={senderAddress}
       />
     </>
   );

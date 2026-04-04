@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, type ComponentType, type PropsWithChildren } from "react";
+import { useEffect, useMemo, useState, type ComponentType, type PropsWithChildren } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   ConnectionProvider,
@@ -14,6 +14,11 @@ import { SolflareWalletAdapter } from "@solana/wallet-adapter-solflare";
 import { LazyMotion, domAnimation } from "framer-motion";
 import { clusterApiUrl } from "@solana/web3.js";
 import { getRpcUrl } from "@/lib/solana";
+import {
+  CUSTOM_RPC_CHANGED_EVENT,
+  readCustomRpcFromStorage,
+  resolveWalletRpcEndpoint,
+} from "@/lib/custom-rpc";
 
 import "@solana/wallet-adapter-react-ui/styles.css";
 
@@ -36,13 +41,26 @@ function networkFromEnv(): WalletAdapterNetwork {
   return WalletAdapterNetwork.Mainnet;
 }
 
+function defaultEndpointFromEnv(): string {
+  try {
+    return getRpcUrl();
+  } catch {
+    return clusterApiUrl("mainnet-beta");
+  }
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
-  const endpoint = useMemo(() => {
-    try {
-      return getRpcUrl();
-    } catch {
-      return clusterApiUrl("mainnet-beta");
-    }
+  const [endpoint, setEndpoint] = useState(defaultEndpointFromEnv);
+
+  useEffect(() => {
+    const custom = readCustomRpcFromStorage();
+    if (custom) setEndpoint(custom);
+  }, []);
+
+  useEffect(() => {
+    const sync = () => setEndpoint(resolveWalletRpcEndpoint());
+    window.addEventListener(CUSTOM_RPC_CHANGED_EVENT, sync);
+    return () => window.removeEventListener(CUSTOM_RPC_CHANGED_EVENT, sync);
   }, []);
 
   const wallets = useMemo(
@@ -56,7 +74,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <Web3ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect>
+      {/* No silent reconnect: after disconnect or a new visit, user must choose wallet and approve again. */}
+      <WalletProvider wallets={wallets} autoConnect={false}>
         <WalletModalProvider>
           <LazyMotion features={domAnimation} strict>
             <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

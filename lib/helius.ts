@@ -11,12 +11,14 @@ export interface HeliusAsset {
     metadata?: {
       name?: string;
       symbol?: string;
+      /** Metaplex off-chain JSON `image` field; DAS often inlines it here. */
+      image?: string;
       attributes?: NFTAttribute[];
       /** On-chain JSON: `{ name, family }` or `{ key, verified }`. */
       collection?: unknown;
       family?: string;
     };
-    links?: { image?: string };
+    links?: { image?: string; thumbnail?: string };
     json_uri?: string;
     files?: { uri?: string; cdn_uri?: string; mime?: string }[];
     $schema?: string;
@@ -40,6 +42,23 @@ function pickCollection(asset: HeliusAsset): string | null {
   return col?.group_value ?? null;
 }
 
+/** Make `ipfs://` / `ar://` URLs usable in `<img src>` (browsers do not load those schemes). */
+export function normalizeNftImageUrl(raw: string | null | undefined): string | null {
+  if (raw == null) return null;
+  const u = raw.trim();
+  if (!u) return null;
+  if (u.startsWith("ipfs://")) {
+    const rest = u.slice("ipfs://".length).replace(/^\/+/, "");
+    const path = rest.replace(/^ipfs\//, "");
+    return `https://ipfs.io/ipfs/${path}`;
+  }
+  if (u.startsWith("ar://")) {
+    const id = u.slice("ar://".length).replace(/^\/+/, "");
+    return `https://arweave.net/${id}`;
+  }
+  return u;
+}
+
 function pickCollectionName(asset: HeliusAsset): string | null {
   const fromDas = asset.collection?.name?.trim();
   if (fromDas) return fromDas;
@@ -57,17 +76,31 @@ function pickCollectionName(asset: HeliusAsset): string | null {
 }
 
 function pickImage(asset: HeliusAsset): string | null {
-  const direct = asset.content?.links?.image;
-  if (direct) return direct;
+  const links = asset.content?.links;
+  const fromLink =
+    normalizeNftImageUrl(links?.image) ?? normalizeNftImageUrl(links?.thumbnail);
+  if (fromLink) return fromLink;
+
+  const metaImg = asset.content?.metadata?.image;
+  if (typeof metaImg === "string") {
+    const n = normalizeNftImageUrl(metaImg);
+    if (n) return n;
+  }
 
   const files = asset.content?.files;
   if (files?.length) {
-    const preferred = files.find(
-      (f) => f.mime?.startsWith("image/") || /\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(f.uri ?? "")
-    );
+    const isImageFile = (f: { uri?: string; cdn_uri?: string; mime?: string }) => {
+      const ref = f.uri ?? f.cdn_uri ?? "";
+      return (
+        f.mime?.startsWith("image/") ||
+        /\.(png|jpe?g|gif|webp|svg|avif)(\?|$)/i.test(ref)
+      );
+    };
+    const preferred = files.find(isImageFile);
     const f = preferred ?? files[0];
     const url = f?.cdn_uri || f?.uri;
-    if (url) return url;
+    const n = normalizeNftImageUrl(url);
+    if (n) return n;
   }
 
   return null;
@@ -79,19 +112,26 @@ function pickName(asset: HeliusAsset): string {
   return `${asset.id.slice(0, 4)}…${asset.id.slice(-4)}`;
 }
 
-export function mapHeliusAssetToNFT(asset: HeliusAsset): NFT {
-  const meta = asset.content?.metadata;
-  return {
-    mint: asset.id,
-    name: pickName(asset),
-    collection: pickCollection(asset),
-    collectionName: pickCollectionName(asset),
-    image: pickImage(asset),
-    symbol: meta?.symbol ?? null,
-    attributes: Array.isArray(meta?.attributes) ? meta.attributes : [],
-    owner: asset.ownership?.owner ?? "",
-    compressed: Boolean(asset.compression?.compressed),
-  };
+export function mapHeliusAssetToNFT(asset: HeliusAsset): NFT | null {
+  try {
+    if (!asset?.id || typeof asset.id !== "string" || asset.id.length < 32) {
+      return null;
+    }
+    const meta = asset.content?.metadata;
+    return {
+      mint: asset.id,
+      name: pickName(asset),
+      collection: pickCollection(asset),
+      collectionName: pickCollectionName(asset),
+      image: pickImage(asset),
+      symbol: meta?.symbol ?? null,
+      attributes: Array.isArray(meta?.attributes) ? meta.attributes : [],
+      owner: asset.ownership?.owner ?? "",
+      compressed: Boolean(asset.compression?.compressed),
+    };
+  } catch {
+    return null;
+  }
 }
 
 export const HELIUS_NFT_PAGE_SIZE = 100;
@@ -189,8 +229,12 @@ export async function fetchAssetsByOwnerPage(
     safePage,
     safeLimit
   );
+  const nfts = items
+    .map(mapHeliusAssetToNFT)
+    .filter((n): n is NFT => n !== null);
+
   return {
-    nfts: items.map(mapHeliusAssetToNFT),
+    nfts,
     page: p,
     limit: l,
     total,

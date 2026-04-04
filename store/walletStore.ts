@@ -3,12 +3,19 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { NFTFilter, TrackedWallet } from "@/types";
+import type { NftSortOrder, NftViewMode } from "@/lib/nft-gallery-utils";
 
 export interface WalletState {
   wallets: TrackedWallet[];
   selectedNFTs: string[];
   filter: NFTFilter;
   activeWallet: string | null;
+  /** Gallery: flat grid vs grouped by collection. */
+  nftViewMode: NftViewMode;
+  nftSortOrder: NftSortOrder;
+  /** `collectionKey(nft)` values starred in the collection view. */
+  favoriteCollectionKeys: string[];
+  nftFavoritesOnly: boolean;
   addWallet: (address: string, label: string, isOwned?: boolean) => void;
   removeWallet: (address: string) => void;
   toggleNFT: (mint: string) => void;
@@ -16,6 +23,10 @@ export interface WalletState {
   setFilter: (filter: Partial<NFTFilter>) => void;
   setActiveWallet: (address: string | null) => void;
   isNFTSelected: (mint: string) => boolean;
+  setNftViewMode: (mode: NftViewMode) => void;
+  setNftSortOrder: (order: NftSortOrder) => void;
+  setNftFavoritesOnly: (v: boolean) => void;
+  toggleFavoriteCollection: (collectionKey: string) => void;
 }
 
 export const useWalletStore = create<WalletState>()(
@@ -25,6 +36,10 @@ export const useWalletStore = create<WalletState>()(
       selectedNFTs: [],
       filter: {},
       activeWallet: null,
+      nftViewMode: "flat",
+      nftSortOrder: "none",
+      favoriteCollectionKeys: [],
+      nftFavoritesOnly: false,
 
       addWallet: (address, label, isOwned = false) => {
         const normalized = address.trim();
@@ -72,6 +87,21 @@ export const useWalletStore = create<WalletState>()(
       setActiveWallet: (address) => set({ activeWallet: address }),
 
       isNFTSelected: (mint) => get().selectedNFTs.includes(mint),
+
+      setNftViewMode: (mode) => set({ nftViewMode: mode }),
+      setNftSortOrder: (order) => set({ nftSortOrder: order }),
+      setNftFavoritesOnly: (v) => set({ nftFavoritesOnly: v }),
+
+      toggleFavoriteCollection: (collectionKey) => {
+        set((s) => {
+          const has = s.favoriteCollectionKeys.includes(collectionKey);
+          return {
+            favoriteCollectionKeys: has
+              ? s.favoriteCollectionKeys.filter((k) => k !== collectionKey)
+              : [...s.favoriteCollectionKeys, collectionKey],
+          };
+        });
+      },
     }),
     {
       name: "solvault-wallet-store",

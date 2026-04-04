@@ -35,7 +35,8 @@ export function useNFTs(walletAddress: string | null | undefined) {
       return page + 1;
     },
     enabled: Boolean(walletAddress && walletAddress.length >= 32),
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
     refetchOnWindowFocus: false,
   });
 }

@@ -91,7 +91,8 @@ Copy `.env.local.example` to `.env.local` (or use `.env`; both are gitignored in
 
 | Variable | Purpose |
 |----------|---------|
-| `NEXT_PUBLIC_HELIUS_API_KEY` | Helius API key; used to build `https://{cluster}.helius-rpc.com/?api-key=...` for **DAS** if you do not pass a full Helius URL in `NEXT_PUBLIC_RPC_URL`. |
+| `HELIUS_API_KEY` | **Recommended for NFT API:** Helius key used only on the server for DAS (`/api/nfts`). Not exposed to the browser. |
+| `NEXT_PUBLIC_HELIUS_API_KEY` | Alternative: same key, but embedded in the client bundle. Used to build `https://{cluster}.helius-rpc.com/?api-key=...` for **DAS** if you do not pass a full Helius URL in `NEXT_PUBLIC_RPC_URL`. |
 | `NEXT_PUBLIC_SOLANA_NETWORK` | `mainnet-beta`, `devnet`, or `testnet`. Must match the cluster your **wallet** uses. Use **`devnet`**, not `devnet-beta`. |
 | `NEXT_PUBLIC_RPC_URL` | Preferred RPC for `ConnectionProvider` and server routes that use `createConnection`. For NFT loading, either this must be a **Helius** URL (with `api-key`) **or** `NEXT_PUBLIC_HELIUS_API_KEY` must be set—plain public Solana RPC does **not** implement DAS. |
 | `NEXT_PUBLIC_MAGIC_EDEN_API` | Base URL for Magic Eden (default mainnet v2 in example). |
@@ -153,7 +154,8 @@ IDL consumed by the app lives at `lib/idl/nft_vault.json`. Regenerate from your 
 
 | Symptom | Things to check |
 |---------|------------------|
-| **No NFTs** | Helius key or Helius RPC URL; network matches wallet (`mainnet-beta` vs `devnet`); not using public RPC-only URL for DAS. |
+| **No NFTs / NFT API 500** | Set `HELIUS_API_KEY` or `NEXT_PUBLIC_HELIUS_API_KEY` (or a Helius `NEXT_PUBLIC_RPC_URL` with a real `api-key`). Public RPC URLs (solana.com, ankr, etc.) do **not** support DAS. Match `NEXT_PUBLIC_SOLANA_NETWORK` to the wallet cluster. |
+| **`bigint: Failed to load bindings`** | Harmless Node fallback from a dependency during `next build` / dev; not the cause of empty NFTs. |
 | **“Maximum update depth”** (fixed in tree) | Effects must not depend on unstable refs (e.g. wallet `publicKey` object identity, or entire `useMutation()` result). |
 | **ChunkLoadError / layout.js timeout** | `npm run clean`, restart dev server, hard refresh or private window; only one `next dev` on port 3000. |
 | **Import / batch send fails** | Source wallet must be **connected** in the adapter to sign; recipient must match expectations (import modal checks primary address). |

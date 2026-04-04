@@ -30,14 +30,19 @@ export function createConnection(commitment: "processed" | "confirmed" | "finali
 
 /**
  * RPC URL used for Helius DAS (`getAssetsByOwner`). Public Solana RPC endpoints
- * do not implement this method — you need a Helius URL with `api-key` or
- * `NEXT_PUBLIC_HELIUS_API_KEY` set.
+ * do not implement this method — you need a Helius URL with `api-key` and/or
+ * `HELIUS_API_KEY` / `NEXT_PUBLIC_HELIUS_API_KEY`.
  */
 export function getHeliusDasRpcUrl(): string {
-  const key = process.env.NEXT_PUBLIC_HELIUS_API_KEY?.trim();
-  const explicitRpc = process.env.NEXT_PUBLIC_RPC_URL?.trim();
   const cluster = normalizeSolanaCluster(process.env.NEXT_PUBLIC_SOLANA_NETWORK);
   const heliusHost = heliusClusterSegment(cluster);
+
+  const serverKey =
+    process.env.HELIUS_API_KEY?.trim() || process.env.SOLANA_HELIUS_API_KEY?.trim();
+  const publicKey = process.env.NEXT_PUBLIC_HELIUS_API_KEY?.trim();
+  const key = serverKey || publicKey;
+
+  const explicitRpc = process.env.NEXT_PUBLIC_RPC_URL?.trim();
 
   if (key) {
     return `https://${heliusHost}.helius-rpc.com/?api-key=${encodeURIComponent(key)}`;
@@ -45,6 +50,17 @@ export function getHeliusDasRpcUrl(): string {
 
   if (explicitRpc) {
     if (explicitRpc.includes("helius-rpc.com")) {
+      const u = explicitRpc.toLowerCase();
+      if (u.includes("api-key=") && (u.includes("api-key=&") || u.endsWith("api-key="))) {
+        throw new Error(
+          "NEXT_PUBLIC_RPC_URL points to Helius but the api-key looks empty. Set your real key in the URL or set HELIUS_API_KEY / NEXT_PUBLIC_HELIUS_API_KEY."
+        );
+      }
+      if (u.includes("your_helius") || u.includes("placeholder")) {
+        throw new Error(
+          "Replace the placeholder in NEXT_PUBLIC_RPC_URL with your Helius API key, or set HELIUS_API_KEY."
+        );
+      }
       return explicitRpc;
     }
     const isPublicSolanaRpc =
@@ -53,7 +69,7 @@ export function getHeliusDasRpcUrl(): string {
       explicitRpc.includes("alchemy.com");
     if (isPublicSolanaRpc) {
       throw new Error(
-        "NFT loading uses Helius DAS (getAssetsByOwner). Your NEXT_PUBLIC_RPC_URL is a public RPC that does not support DAS. Set NEXT_PUBLIC_HELIUS_API_KEY or use a Helius URL like https://mainnet.helius-rpc.com/?api-key=YOUR_KEY (and match NEXT_PUBLIC_SOLANA_NETWORK to your wallet: mainnet vs devnet)."
+        "NFT loading uses Helius DAS (getAssetsByOwner). Your NEXT_PUBLIC_RPC_URL is a public RPC that does not support DAS. Set HELIUS_API_KEY or NEXT_PUBLIC_HELIUS_API_KEY, or use a Helius URL with api-key (match NEXT_PUBLIC_SOLANA_NETWORK to your wallet: mainnet vs devnet)."
       );
     }
     return explicitRpc;
@@ -61,7 +77,7 @@ export function getHeliusDasRpcUrl(): string {
 
   const fallback = clusterApiUrl(cluster);
   throw new Error(
-    `NFT loading requires Helius. Add NEXT_PUBLIC_HELIUS_API_KEY or NEXT_PUBLIC_RPC_URL pointing to https://${heliusHost}.helius-rpc.com/?api-key=YOUR_KEY. Use NEXT_PUBLIC_SOLANA_NETWORK=devnet or mainnet-beta (not devnet-beta). Fallback would be ${fallback}, which does not support DAS.`
+    `NFT loading requires Helius. Set HELIUS_API_KEY (server) or NEXT_PUBLIC_HELIUS_API_KEY, or NEXT_PUBLIC_RPC_URL to https://${heliusHost}.helius-rpc.com/?api-key=YOUR_KEY. Use NEXT_PUBLIC_SOLANA_NETWORK=devnet or mainnet-beta. Plain ${fallback} does not support DAS.`
   );
 }
 

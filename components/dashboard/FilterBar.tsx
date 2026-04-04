@@ -39,7 +39,7 @@ export function FilterBar({ nfts }: FilterBarProps) {
         >
           All collections
         </Button>
-        {cols.map(({ id, label }) => (
+        {cols.map(({ id, label, count }) => (
           <Button
             key={id}
             type="button"
@@ -47,9 +47,10 @@ export function FilterBar({ nfts }: FilterBarProps) {
             variant="outline"
             className={cn(filterBtn, filter.collection === id && filterBtnActive)}
             onClick={() => setFilter({ collection: id })}
-            title={id}
+            title={`${label} — ${count} NFTs · ${id}`}
           >
-            {label}
+            <span className="max-w-[10rem] truncate sm:max-w-[14rem]">{label}</span>
+            <span className="ml-1 tabular-nums text-solana-green/70">({count})</span>
           </Button>
         ))}
       </div>

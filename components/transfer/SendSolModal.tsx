@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import confetti from "canvas-confetti";
 import { m, AnimatePresence } from "framer-motion";
@@ -17,6 +17,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSendSol } from "@/hooks/useSendSol";
+import { buildSolTransferTransaction, parseSolToLamports } from "@/lib/sol-transfer";
+import { simulateLegacyForReview } from "@/lib/simulate-transaction";
+import { buildSolTransferSummaryLines } from "@/lib/tx-review-summary";
+import { TransactionReviewPanel } from "@/components/transfer/TransactionReviewPanel";
 import { solscanTxUrl } from "@/lib/solscan";
 import { Loader2 } from "lucide-react";
 
@@ -39,6 +43,7 @@ interface SendSolModalProps {
 }
 
 export function SendSolModal({ open, onClose, senderAddress, maxSolHint }: SendSolModalProps) {
+  const { connection } = useConnection();
   const wallet = useWallet();
   const mutation = useSendSol();
   const resetMutationRef = useRef(mutation.reset);
@@ -46,8 +51,10 @@ export function SendSolModal({ open, onClose, senderAddress, maxSolHint }: SendS
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [phase, setPhase] = useState<"form" | "success">("form");
+  const [phase, setPhase] = useState<"form" | "review" | "success">("form");
+  const [reviewLines, setReviewLines] = useState<string[]>([]);
   const [sig, setSig] = useState<string | null>(null);
+  const [simBusy, setSimBusy] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -55,12 +62,14 @@ export function SendSolModal({ open, onClose, senderAddress, maxSolHint }: SendS
       setAmount("");
       setError(null);
       setPhase("form");
+      setReviewLines([]);
       setSig(null);
+      setSimBusy(false);
       resetMutationRef.current();
     }
   }, [open]);
 
-  function onSubmit(e: React.FormEvent) {
+  async function prepareReview(e: React.FormEvent) {
     e.preventDefault();
     const v = validateRecipient(recipient);
     if (v) {
@@ -72,11 +81,45 @@ export function SendSolModal({ open, onClose, senderAddress, maxSolHint }: SendS
       setError("Amount is required");
       return;
     }
+    const pk = wallet.publicKey;
+    if (!pk) {
+      setError("Connect a wallet first");
+      return;
+    }
+    setError(null);
+    setSimBusy(true);
+    try {
+      const lamports = parseSolToLamports(a);
+      const recipientPk = new PublicKey(recipient.trim());
+      const tx = await buildSolTransferTransaction({
+        connection,
+        from: pk,
+        to: recipientPk,
+        lamports,
+      });
+      const meta = await simulateLegacyForReview(connection, tx);
+      setReviewLines(
+        buildSolTransferSummaryLines({
+          amountSol: a,
+          recipient: recipient.trim(),
+          feeLamports: meta.feeLamports,
+          unitsConsumed: meta.unitsConsumed,
+        })
+      );
+      setPhase("review");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSimBusy(false);
+    }
+  }
+
+  function runSend() {
     setError(null);
     mutation.mutate(
       {
         recipient: recipient.trim(),
-        amountSol: a,
+        amountSol: amount.trim(),
         wallet,
         senderAddress,
       },
@@ -105,7 +148,7 @@ export function SendSolModal({ open, onClose, senderAddress, maxSolHint }: SendS
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onSubmit={onSubmit}
+              onSubmit={prepareReview}
             >
               <DialogHeader>
                 <DialogTitle>Send SOL</DialogTitle>
@@ -151,19 +194,43 @@ export function SendSolModal({ open, onClose, senderAddress, maxSolHint }: SendS
                 {error ? <p className="text-sm text-red-400">{error}</p> : null}
               </div>
               <DialogFooter>
-                <Button type="submit" disabled={mutation.isPending}>
-                  {mutation.isPending ? (
+                <Button type="submit" disabled={simBusy}>
+                  {simBusy ? (
                     <>
                       <Loader2 className="animate-spin" />
-                      Awaiting signature…
+                      Simulating…
                     </>
                   ) : (
-                    "Send SOL"
+                    "Review transaction"
                   )}
                 </Button>
               </DialogFooter>
             </m.form>
-          ) : (
+          ) : null}
+
+          {phase === "review" ? (
+            <m.div
+              key="review"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-3"
+            >
+              <TransactionReviewPanel
+                title="Send SOL"
+                lines={reviewLines}
+                onBack={() => {
+                  setPhase("form");
+                  setError(null);
+                }}
+                onConfirm={runSend}
+                confirming={mutation.isPending}
+              />
+              {error ? <p className="text-sm text-red-400">{error}</p> : null}
+            </m.div>
+          ) : null}
+
+          {phase === "success" ? (
             <m.div
               key="done"
               initial={{ opacity: 0, scale: 0.98 }}
@@ -191,7 +258,7 @@ export function SendSolModal({ open, onClose, senderAddress, maxSolHint }: SendS
                 </Button>
               </DialogFooter>
             </m.div>
-          )}
+          ) : null}
         </AnimatePresence>
       </DialogContent>
     </Dialog>
