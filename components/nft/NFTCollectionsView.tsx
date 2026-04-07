@@ -8,6 +8,7 @@ import { NFTVirtualizedGrid } from "@/components/nft/NFTVirtualizedGrid";
 import { Button } from "@/components/ui/button";
 import { useWalletStore } from "@/store/walletStore";
 import { cn } from "@/lib/utils";
+import { NftImage } from "@/components/nft/NftImage";
 
 function CollectionDetails({
   starred,
@@ -85,19 +86,14 @@ export function NFTCollectionsView({
           <CollectionDetails key={g.key} starred={starred} itemCount={g.items.length}>
             <summary className="flex cursor-pointer list-none items-center gap-3 p-3 marker:hidden [&::-webkit-details-marker]:hidden">
               <div className="flex min-w-0 flex-1 items-center gap-3">
-                {g.coverImage ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                <div className="h-11 w-11 shrink-0 overflow-hidden rounded-md border border-border-subtle">
+                  <NftImage
                     src={g.coverImage}
                     alt=""
-                    referrerPolicy="no-referrer"
-                    className="h-11 w-11 shrink-0 rounded-md border border-border-subtle object-cover"
+                    className="h-11 w-11 object-cover"
+                    emptyClassName="h-11 w-11 rounded-md border border-dashed border-border-subtle"
                   />
-                ) : (
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-dashed border-border-subtle text-[10px] text-muted-foreground">
-                    No art
-                  </div>
-                )}
+                </div>
                 <div className="min-w-0" title={g.key !== "__uncategorized__" ? g.key : undefined}>
                   <p className="truncate font-display text-sm font-bold text-solana-green">{g.label}</p>
                   <p className="text-[10px] text-muted-foreground">

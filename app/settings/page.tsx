@@ -34,7 +34,7 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="mx-auto max-w-lg space-y-6 px-4 py-8 sm:px-6">
+      <main id="main-content" className="mx-auto max-w-lg space-y-6 px-4 py-8 sm:px-6">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" asChild className="shrink-0">
             <Link href="/" aria-label="Back to portfolio">

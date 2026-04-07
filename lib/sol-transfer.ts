@@ -10,18 +10,24 @@ import {
   createAssociatedTokenAccountInstruction,
   createTransferInstruction,
   getAssociatedTokenAddress,
-  TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
+import { getTokenProgramForMint } from "@/lib/token-mint-program";
+
+export interface BuiltLegacyTransaction {
+  transaction: Transaction;
+  blockhash: string;
+  lastValidBlockHeight: number;
+}
 
 export async function buildSolTransferTransaction(params: {
   connection: Connection;
   from: PublicKey;
   to: PublicKey;
   lamports: bigint;
-}): Promise<Transaction> {
+}): Promise<BuiltLegacyTransaction> {
   const { connection, from, to, lamports } = params;
   if (lamports <= 0n) throw new Error("Amount must be positive");
-  const { blockhash } = await connection.getLatestBlockhash("confirmed");
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
   const tx = new Transaction();
   tx.feePayer = from;
   tx.recentBlockhash = blockhash;
@@ -32,7 +38,7 @@ export async function buildSolTransferTransaction(params: {
       lamports,
     })
   );
-  return tx;
+  return { transaction: tx, blockhash, lastValidBlockHeight };
 }
 
 export function parseSolToLamports(sol: string): bigint {
@@ -51,22 +57,24 @@ export async function buildFungibleSplTransferTransaction(params: {
   recipient: PublicKey;
   amountRaw: bigint;
   feePayer: PublicKey;
-}): Promise<Transaction> {
+}): Promise<BuiltLegacyTransaction> {
   const { connection, mint, sender, recipient, amountRaw, feePayer } = params;
   if (amountRaw <= 0n) throw new Error("Amount must be positive");
+
+  const programId = await getTokenProgramForMint(connection, mint);
 
   const senderAta = await getAssociatedTokenAddress(
     mint,
     sender,
     false,
-    TOKEN_PROGRAM_ID,
+    programId,
     ASSOCIATED_TOKEN_PROGRAM_ID
   );
   const recipientAta = await getAssociatedTokenAddress(
     mint,
     recipient,
     false,
-    TOKEN_PROGRAM_ID,
+    programId,
     ASSOCIATED_TOKEN_PROGRAM_ID
   );
 
@@ -79,7 +87,7 @@ export async function buildFungibleSplTransferTransaction(params: {
         recipientAta,
         recipient,
         mint,
-        TOKEN_PROGRAM_ID,
+        programId,
         ASSOCIATED_TOKEN_PROGRAM_ID
       )
     );
@@ -92,16 +100,16 @@ export async function buildFungibleSplTransferTransaction(params: {
       sender,
       amountRaw,
       [],
-      TOKEN_PROGRAM_ID
+      programId
     )
   );
 
-  const { blockhash } = await connection.getLatestBlockhash("confirmed");
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
   const tx = new Transaction();
   tx.feePayer = feePayer;
   tx.recentBlockhash = blockhash;
   tx.add(...ix);
-  return tx;
+  return { transaction: tx, blockhash, lastValidBlockHeight };
 }
 
 export function parseTokenAmountToRaw(amountUi: string, decimals: number): bigint {

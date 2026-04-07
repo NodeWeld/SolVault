@@ -27,7 +27,7 @@ export function useSendNFT() {
       const mintPk = new PublicKey(mint);
       const recipientPk = new PublicKey(recipient);
 
-      const tx = await buildNftTransferTransaction({
+      const { transaction, blockhash, lastValidBlockHeight } = await buildNftTransferTransaction({
         connection,
         mint: mintPk,
         sender: publicKey,
@@ -35,17 +35,16 @@ export function useSendNFT() {
         feePayer: publicKey,
       });
 
-      await simulateLegacyTransaction(connection, tx);
+      await simulateLegacyTransaction(connection, transaction);
 
-      const sig = await sendTransaction(tx, connection, {
+      const sig = await sendTransaction(transaction, connection, {
         skipPreflight: false,
         preflightCommitment: "confirmed",
         maxRetries: 3,
       });
 
-      const latest = await connection.getLatestBlockhash("confirmed");
       await connection.confirmTransaction(
-        { signature: sig, blockhash: latest.blockhash, lastValidBlockHeight: latest.lastValidBlockHeight },
+        { signature: sig, blockhash, lastValidBlockHeight },
         "confirmed"
       );
 

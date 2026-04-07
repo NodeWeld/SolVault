@@ -12,6 +12,7 @@ import {
 } from "@/components/wallet/AddressReceiveDialog";
 import { NetworkBadge } from "@/components/layout/NetworkBadge";
 import { NetworkHintBanner } from "@/components/layout/NetworkHintBanner";
+import { SiwsSessionBar } from "@/components/auth/SiwsSessionBar";
 import { HeaderActions } from "@/components/layout/HeaderActions";
 import { useSolPrice } from "@/hooks/useSolPrice";
 import { useWalletStore } from "@/store/walletStore";
@@ -37,8 +38,8 @@ export function Header() {
 
   return (
     <Fragment>
-      <header className="sticky top-0 z-40 border-b border-border-subtle bg-[#080B12]/80 backdrop-blur-md">
-        <div className="mx-auto flex min-h-14 max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-2 sm:flex-nowrap sm:px-6">
+      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#070a10]/85 backdrop-blur-xl supports-[backdrop-filter]:bg-[#070a10]/65">
+        <div className="mx-auto flex min-h-[3.25rem] max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-2.5 sm:flex-nowrap sm:px-6">
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/"
@@ -52,7 +53,7 @@ export function Header() {
 
           <div className="flex flex-1 flex-wrap items-center justify-end gap-2 sm:gap-3">
             {price?.usd != null ? (
-              <div className="hidden items-center gap-2 rounded-md border border-border-subtle bg-surface px-3 py-1.5 text-xs md:flex">
+              <div className="hidden items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-3.5 py-1.5 text-xs shadow-sm shadow-black/20 md:flex">
                 <span className="text-muted-foreground">SOL</span>
                 <span className="font-mono font-semibold text-foreground">
                   ${price.usd.toLocaleString(undefined, { maximumFractionDigits: 2 })}
@@ -88,6 +89,7 @@ export function Header() {
         </div>
       </header>
       {connected ? <NetworkHintBanner /> : null}
+      {connected ? <SiwsSessionBar /> : null}
     </Fragment>
   );
 }

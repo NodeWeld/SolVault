@@ -6,16 +6,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAddressBalance } from "@/hooks/useAddressBalance";
 import { useSplTokens } from "@/hooks/useSplTokens";
+import { useTokenPrices } from "@/hooks/useTokenPrices";
 import { SendSolModal } from "@/components/transfer/SendSolModal";
 import { SendSplModal } from "@/components/transfer/SendSplModal";
 import { CloseEmptySplModal } from "@/components/transfer/CloseEmptySplModal";
+import { jupiterSwapDeepLink } from "@/lib/jupiter";
 import type { SplTokenBalance } from "@/types";
+import { ExternalLink } from "lucide-react";
 
 const panel =
   "border border-blue-800/50 bg-blue-950/90 text-solana-green shadow-md shadow-blue-950/30 backdrop-blur-sm";
 
 function shortMint(m: string) {
   return m.length <= 14 ? m : `${m.slice(0, 4)}…${m.slice(-4)}`;
+}
+
+function parseUiAmount(ui: string): number {
+  const n = parseFloat(ui.replace(/,/g, ""));
+  return Number.isFinite(n) ? n : NaN;
 }
 
 interface TokensPanelProps {
@@ -27,6 +35,9 @@ interface TokensPanelProps {
 export function TokensPanel({ viewAddress, canSend, senderAddress }: TokensPanelProps) {
   const { data: bal, isLoading: balLoading } = useAddressBalance(viewAddress);
   const { data: tokens = [], isLoading: tokLoading, error: tokError } = useSplTokens(viewAddress);
+
+  const mints = useMemo(() => tokens.map((t) => t.mint), [tokens]);
+  const { data: prices = {} } = useTokenPrices(mints);
 
   const [solOpen, setSolOpen] = useState(false);
   const [splToken, setSplToken] = useState<SplTokenBalance | null>(null);
@@ -53,7 +64,8 @@ export function TokensPanel({ viewAddress, canSend, senderAddress }: TokensPanel
         </CardHeader>
         <CardContent className="space-y-3 pt-0">
           <p className="text-xs text-solana-green/65">
-            Fungible SPL balances (NFT-style 1-of-1 accounts are hidden). Native SOL is shown below.
+            Fungible SPL and Token-2022 balances (1/0 NFT-style accounts are hidden). Native SOL is shown
+            below. Sends use the correct program per mint.
           </p>
 
           <div className="rounded-lg border border-blue-800/40 bg-blue-900/35 px-3 py-2 text-sm">
@@ -86,40 +98,81 @@ export function TokensPanel({ viewAddress, canSend, senderAddress }: TokensPanel
           </div>
 
           {tokLoading ? (
-            <p className="text-sm text-solana-green/70">Loading SPL tokens…</p>
+            <p className="text-sm text-solana-green/70">Loading tokens…</p>
           ) : tokError ? (
             <p className="text-sm text-red-400">
               {tokError instanceof Error ? tokError.message : "Could not load tokens"}
             </p>
           ) : tokens.length === 0 ? (
-            <p className="text-sm text-solana-green/65">No fungible SPL token accounts found.</p>
+            <p className="text-sm text-solana-green/65">No fungible token accounts found.</p>
           ) : (
-            <ul className="max-h-48 space-y-2 overflow-auto text-xs">
-              {tokens.map((t) => (
-                <li
-                  key={t.ata}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-blue-800/40 bg-blue-900/25 px-2 py-2"
-                >
-                  <div className="min-w-0">
-                    <p className="font-mono text-[10px] text-solana-green/80" title={t.mint}>
-                      {shortMint(t.mint)}
-                    </p>
-                    <p className="font-mono text-solana-green">{t.uiAmount}</p>
-                  </div>
-                  {canSend ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="shrink-0 text-solana-green hover:bg-blue-900/40"
-                      onClick={() => openSpl(t)}
+            <>
+              <p className="text-[10px] leading-snug text-amber-200/75">
+                USD hints are estimates from Jupiter’s price API (not a quote). Tokens without liquidity may
+                show no USD line.
+              </p>
+              <ul className="max-h-48 space-y-2 overflow-auto text-xs">
+                {tokens.map((t) => {
+                  const usdPx = prices[t.mint];
+                  const qty = parseUiAmount(t.uiAmount);
+                  const usdLine =
+                    usdPx != null && Number.isFinite(qty)
+                      ? qty * usdPx
+                      : usdPx != null && !Number.isFinite(qty)
+                        ? null
+                        : null;
+                  const swapHref = jupiterSwapDeepLink(t.mint);
+                  return (
+                    <li
+                      key={t.ata}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-blue-800/40 bg-blue-900/25 px-2 py-2"
                     >
-                      Send
-                    </Button>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <p className="font-mono text-[10px] text-solana-green/80" title={t.mint}>
+                            {shortMint(t.mint)}
+                          </p>
+                          {t.program === "token-2022" ? (
+                            <span className="rounded bg-purple-500/25 px-1 py-px text-[9px] font-medium uppercase text-purple-200/90">
+                              T22
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="font-mono text-solana-green">{t.uiAmount}</p>
+                        {usdLine != null ? (
+                          <p className="text-[10px] text-solana-green/55">≈ ${usdLine.toFixed(2)} USD est.</p>
+                        ) : null}
+                      </div>
+                      <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 gap-1 px-2 text-[10px] text-solana-green/90 hover:bg-blue-900/40"
+                          asChild
+                        >
+                          <a href={swapHref} target="_blank" rel="noopener noreferrer">
+                            Swap
+                            <ExternalLink className="h-3 w-3 opacity-70" aria-hidden />
+                          </a>
+                        </Button>
+                        {canSend ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-solana-green hover:bg-blue-900/40"
+                            onClick={() => openSpl(t)}
+                          >
+                            Send
+                          </Button>
+                        ) : null}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
           )}
 
           {canSend ? (

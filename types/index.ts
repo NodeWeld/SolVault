@@ -27,6 +27,8 @@ export interface NFTFilter {
   collection?: string;
   rarity?: string;
   hasImage?: boolean;
+  /** Case-insensitive match on name, mint, symbol, collection name. */
+  search?: string;
 }
 
 export interface ActivityItem {
@@ -63,4 +65,6 @@ export interface SplTokenBalance {
   amountRaw: string;
   decimals: number;
   uiAmount: string;
+  /** Which token program owns this ATA (send path must match). */
+  program?: "token" | "token-2022";
 }

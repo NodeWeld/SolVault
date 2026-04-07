@@ -46,6 +46,11 @@ const spaceMono = Space_Mono({
 export const metadata: Metadata = {
   title: "SolVault — Solana NFT Wallet",
   description: "Production-ready Solana NFT portfolio, transfers, and vault controls.",
+  appleWebApp: {
+    capable: true,
+    title: "SolVault",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -59,6 +64,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           spaceMono.variable
         )}
       >
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[200] focus:rounded-md focus:bg-solana-purple focus:px-3 focus:py-2 focus:text-sm focus:text-white focus:outline-none focus:ring-2 focus:ring-solana-green"
+        >
+          Skip to main content
+        </a>
         <div className="app-bg" aria-hidden />
         <div className="orb orb-purple" aria-hidden />
         <div className="orb orb-green" aria-hidden />

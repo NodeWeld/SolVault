@@ -9,8 +9,9 @@ import {
   createAssociatedTokenAccountInstruction,
   createTransferInstruction,
   getAssociatedTokenAddress,
-  TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
+import type { BuiltLegacyTransaction } from "@/lib/sol-transfer";
+import { getTokenProgramForMint } from "@/lib/token-mint-program";
 
 export async function buildNftTransferInstructions(params: {
   connection: Connection;
@@ -20,18 +21,20 @@ export async function buildNftTransferInstructions(params: {
 }): Promise<TransactionInstruction[]> {
   const { connection, mint, sender, recipient } = params;
 
+  const programId = await getTokenProgramForMint(connection, mint);
+
   const senderAta = await getAssociatedTokenAddress(
     mint,
     sender,
     false,
-    TOKEN_PROGRAM_ID,
+    programId,
     ASSOCIATED_TOKEN_PROGRAM_ID
   );
   const recipientAta = await getAssociatedTokenAddress(
     mint,
     recipient,
     false,
-    TOKEN_PROGRAM_ID,
+    programId,
     ASSOCIATED_TOKEN_PROGRAM_ID
   );
 
@@ -44,7 +47,7 @@ export async function buildNftTransferInstructions(params: {
         recipientAta,
         recipient,
         mint,
-        TOKEN_PROGRAM_ID,
+        programId,
         ASSOCIATED_TOKEN_PROGRAM_ID
       )
     );
@@ -57,7 +60,7 @@ export async function buildNftTransferInstructions(params: {
       sender,
       1,
       [],
-      TOKEN_PROGRAM_ID
+      programId
     )
   );
 
@@ -70,13 +73,13 @@ export async function buildNftTransferTransaction(params: {
   sender: PublicKey;
   recipient: PublicKey;
   feePayer: PublicKey;
-}): Promise<Transaction> {
+}): Promise<BuiltLegacyTransaction> {
   const { connection, feePayer } = params;
   const instructions = await buildNftTransferInstructions(params);
-  const { blockhash } = await connection.getLatestBlockhash("confirmed");
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
   const tx = new Transaction();
   tx.feePayer = feePayer;
   tx.recentBlockhash = blockhash;
   tx.add(...instructions);
-  return tx;
+  return { transaction: tx, blockhash, lastValidBlockHeight };
 }

@@ -2,6 +2,8 @@
 
 import type { NFT } from "@/types";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useWalletStore } from "@/store/walletStore";
 import { uniqueCollectionOptions, uniqueRarities } from "@/lib/nft-filters";
 import { cn } from "@/lib/utils";
@@ -29,6 +31,19 @@ export function FilterBar({ nfts }: FilterBarProps) {
       <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-solana-green/80">
         Filters
       </p>
+      <div className="mb-3 space-y-1.5">
+        <Label htmlFor="nft-search" className="text-[10px] text-solana-green/70">
+          Search NFTs <span className="font-normal text-solana-green/50">(press /)</span>
+        </Label>
+        <Input
+          id="nft-search"
+          type="search"
+          placeholder="Name, mint, collection…"
+          className="border-blue-800/50 bg-blue-900/30 font-mono text-xs text-solana-green placeholder:text-solana-green/35"
+          value={filter.search ?? ""}
+          onChange={(e) => setFilter({ search: e.target.value || undefined })}
+        />
+      </div>
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
@@ -96,7 +111,9 @@ export function FilterBar({ nfts }: FilterBarProps) {
           size="sm"
           variant="ghost"
           className="text-solana-green/80 hover:bg-blue-900/40 hover:text-solana-green"
-          onClick={() => setFilter({ collection: undefined, rarity: undefined, hasImage: undefined })}
+          onClick={() =>
+            setFilter({ collection: undefined, rarity: undefined, hasImage: undefined, search: undefined })
+          }
         >
           Clear filters
         </Button>

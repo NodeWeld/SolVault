@@ -19,6 +19,7 @@ import { MarketplaceLinks } from "@/components/nft/MarketplaceLinks";
 import { useVaultProgram } from "@/hooks/useVaultProgram";
 import { useBurnNft } from "@/hooks/useBurnNft";
 import { collectionDisplayLabel } from "@/lib/nft-filters";
+import { NftImage } from "@/components/nft/NftImage";
 import { cn } from "@/lib/utils";
 
 interface NFTDetailProps {
@@ -195,19 +196,12 @@ export function NFTDetail({
                 <div className="grid min-h-0 flex-1 overflow-hidden sm:grid-cols-[minmax(0,240px)_1fr] md:grid-cols-[minmax(0,280px)_1fr]">
                   <div className="flex items-start justify-center border-b border-white/[0.06] bg-black/25 p-5 sm:border-b-0 sm:border-r sm:p-6">
                     <div className="aspect-square w-full max-w-[200px] overflow-hidden rounded-xl ring-1 ring-white/10 sm:max-w-none">
-                      {nft.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={nft.image}
-                          alt=""
-                          referrerPolicy="no-referrer"
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full min-h-[140px] items-center justify-center bg-slate-950/80 text-xs text-muted-foreground">
-                          No image
-                        </div>
-                      )}
+                      <NftImage
+                        src={nft.image}
+                        alt=""
+                        className="h-full min-h-[140px] w-full object-cover"
+                        emptyClassName="min-h-[140px] rounded-none bg-slate-950/80"
+                      />
                     </div>
                   </div>
 

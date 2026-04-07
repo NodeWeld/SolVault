@@ -39,7 +39,7 @@ export function useBatchSend() {
       const progress: BatchSendProgress = { sent: 0, total: mints.length, errors: [] };
       onProgress?.(progress);
 
-      const versionedTxs = await Promise.all(
+      const builtBatches = await Promise.all(
         batches.map((batch) =>
           buildVersionedBatchForMints({
             connection,
@@ -51,6 +51,8 @@ export function useBatchSend() {
         )
       );
 
+      const versionedTxs = builtBatches.map((b) => b.transaction);
+
       const signedTxs =
         signAllTransactions && versionedTxs.length > 0
           ? await signAllTransactions(versionedTxs)
@@ -61,7 +63,8 @@ export function useBatchSend() {
       for (let i = 0; i < versionedTxs.length; i++) {
         const batch = batches[i] ?? [];
         const vtx = versionedTxs[i];
-        if (!vtx) continue;
+        const built = builtBatches[i];
+        if (!vtx || !built) continue;
         const txToSim = signedTxs?.[i] ?? vtx;
         try {
           await simulateVersionedTransaction(connection, txToSim);
@@ -91,12 +94,11 @@ export function useBatchSend() {
             });
           }
 
-          const latest = await connection.getLatestBlockhash("confirmed");
           await connection.confirmTransaction(
             {
               signature: sig,
-              blockhash: latest.blockhash,
-              lastValidBlockHeight: latest.lastValidBlockHeight,
+              blockhash: built.blockhash,
+              lastValidBlockHeight: built.lastValidBlockHeight,
             },
             "confirmed"
           );

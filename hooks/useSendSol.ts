@@ -27,24 +27,23 @@ export function useSendSol() {
       const lamports = parseSolToLamports(amountSol);
       const recipientPk = new PublicKey(recipient.trim());
 
-      const tx = await buildSolTransferTransaction({
+      const { transaction, blockhash, lastValidBlockHeight } = await buildSolTransferTransaction({
         connection,
         from: publicKey,
         to: recipientPk,
         lamports,
       });
 
-      await simulateLegacyTransaction(connection, tx);
+      await simulateLegacyTransaction(connection, transaction);
 
-      const sig = await sendTransaction(tx, connection, {
+      const sig = await sendTransaction(transaction, connection, {
         skipPreflight: false,
         preflightCommitment: "confirmed",
         maxRetries: 3,
       });
 
-      const latest = await connection.getLatestBlockhash("confirmed");
       await connection.confirmTransaction(
-        { signature: sig, blockhash: latest.blockhash, lastValidBlockHeight: latest.lastValidBlockHeight },
+        { signature: sig, blockhash, lastValidBlockHeight },
         "confirmed"
       );
 

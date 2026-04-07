@@ -30,13 +30,16 @@
   --border: 220 12% 18%;
   --input: 220 12% 18%;
   --ring: 265 100% 64%;
-  --radius: 0.75rem;
+  --radius: 1rem;
 }
 
 body {
   color: var(--color-text);
   background-color: var(--color-bg);
   min-height: 100vh;
+  background-image:
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(153, 69, 255, 0.12), transparent 55%),
+    radial-gradient(ellipse 90% 60% at 100% 50%, rgba(20, 241, 149, 0.06), transparent 45%);
 }
 
 .app-bg {
@@ -97,6 +100,17 @@ body {
 @layer base {
   * {
     @apply border-border;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

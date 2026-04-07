@@ -50,7 +50,7 @@ export function normalizeNftImageUrl(raw: string | null | undefined): string | n
   if (u.startsWith("ipfs://")) {
     const rest = u.slice("ipfs://".length).replace(/^\/+/, "");
     const path = rest.replace(/^ipfs\//, "");
-    return `https://ipfs.io/ipfs/${path}`;
+    return `https://cloudflare-ipfs.com/ipfs/${path}`;
   }
   if (u.startsWith("ar://")) {
     const id = u.slice("ar://".length).replace(/^\/+/, "");
@@ -102,6 +102,9 @@ function pickImage(asset: HeliusAsset): string | null {
     const n = normalizeNftImageUrl(url);
     if (n) return n;
   }
+
+  const collectionBanner = normalizeNftImageUrl(asset.collection?.image);
+  if (collectionBanner) return collectionBanner;
 
   return null;
 }

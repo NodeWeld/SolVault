@@ -31,6 +31,7 @@ export function labelForCollectionFilter(nfts: NFT[], collectionId: string): str
 }
 
 export function applyNFTFilters(nfts: NFT[], filter: NFTFilter): NFT[] {
+  const q = filter.search?.trim().toLowerCase();
   return nfts.filter((n) => {
     if (filter.collection && (n.collection ?? "") !== filter.collection) return false;
     if (filter.hasImage === true && !n.image) return false;
@@ -40,6 +41,18 @@ export function applyNFTFilters(nfts: NFT[], filter: NFTFilter): NFT[] {
       )?.value;
       const rs = r == null ? "" : String(r);
       if (rs !== filter.rarity) return false;
+    }
+    if (q) {
+      const hay = [
+        n.name,
+        n.mint,
+        n.symbol ?? "",
+        n.collectionName ?? "",
+        n.collection ?? "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      if (!hay.includes(q)) return false;
     }
     return true;
   });

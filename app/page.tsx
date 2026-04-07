@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -60,6 +61,7 @@ const ImportModal = dynamic(
 );
 
 export default function HomePage() {
+  const router = useRouter();
   const { connected, publicKey } = useWallet();
   const activeWallet = useWalletStore((s) => s.activeWallet);
   const selected = useWalletStore((s) => s.selectedNFTs);
@@ -98,11 +100,51 @@ export default function HomePage() {
   const [mobileTab, setMobileTab] = useState<PortfolioMobileTab>("nfts");
   const [walletsOpen, setWalletsOpen] = useState(false);
 
+  useEffect(() => {
+    function focusableTarget(el: EventTarget | null) {
+      return el instanceof HTMLElement && (el.tagName === "INPUT" || el.tagName === "TEXTAREA");
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "/" && !focusableTarget(e.target)) {
+        e.preventDefault();
+        document.getElementById("nft-search")?.focus();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  useEffect(() => {
+    if (!connected) return;
+    let gAt = 0;
+    function onKey(e: KeyboardEvent) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target;
+      if (t instanceof HTMLElement && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+      if (e.key === "g" || e.key === "G") {
+        gAt = Date.now();
+        return;
+      }
+      if (e.key === "s" || e.key === "S") {
+        if (Date.now() - gAt < 1200) {
+          gAt = 0;
+          router.push("/settings");
+        }
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [connected, router]);
+
   if (!connected) {
     return (
       <div className="min-h-screen">
         <Header />
-        <main className="mx-auto flex max-w-4xl flex-col items-center justify-center px-4 py-24 text-center">
+        <main
+          id="main-content"
+          className="mx-auto flex max-w-4xl flex-col items-center justify-center px-4 py-24 text-center"
+        >
           <div className="space-y-6 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-500">
             <h1 className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl">
               Your Solana NFTs,{" "}
@@ -128,7 +170,7 @@ export default function HomePage() {
       <Header />
       <div className="mx-auto flex max-w-7xl">
         <Sidebar />
-        <main className="flex-1 space-y-6 px-4 py-6 pb-24 sm:px-6 lg:pb-6">
+        <main id="main-content" className="flex-1 space-y-6 px-4 py-6 pb-24 sm:px-6 lg:pb-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="font-display text-2xl font-extrabold">Portfolio</h1>

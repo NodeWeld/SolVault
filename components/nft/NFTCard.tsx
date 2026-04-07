@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useWalletStore } from "@/store/walletStore";
 import { nftCardDisplayParts } from "@/lib/nft-filters";
+import { NftImage } from "@/components/nft/NftImage";
 
 interface NFTCardProps {
   nft: NFT;
@@ -34,20 +35,13 @@ export function NFTCard({
         )}
         onClick={() => onOpen(nft)}
       >
-        <div className="relative aspect-square bg-black/40">
-          {nft.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={nft.image}
-              alt={title}
-              referrerPolicy="no-referrer"
-              className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-              No image
-            </div>
-          )}
+        <div className="relative aspect-square overflow-hidden bg-black/40">
+          <NftImage
+            src={nft.image}
+            alt={title}
+            className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
+            emptyClassName="absolute inset-0 h-full w-full"
+          />
           {nft.compressed ? (
             <Badge className="absolute left-2 top-2" variant="secondary">
               cNFT

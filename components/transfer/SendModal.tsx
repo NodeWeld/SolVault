@@ -15,8 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { RecipientAddressField } from "@/components/transfer/RecipientAddressField";
 import { useSendNFT } from "@/hooks/useSendNFT";
 import { useSendCompressedNft } from "@/hooks/useSendCompressedNft";
 import { buildNftTransferTransaction } from "@/lib/transfer";
@@ -26,6 +25,7 @@ import { TransactionReviewPanel } from "@/components/transfer/TransactionReviewP
 import { solscanTxUrl } from "@/lib/solscan";
 import { Loader2 } from "lucide-react";
 import { collectionDisplayLabel } from "@/lib/nft-filters";
+import { NftImage } from "@/components/nft/NftImage";
 
 function validateRecipient(input: string): string | null {
   const t = input.trim();
@@ -106,7 +106,7 @@ export function SendModal({ nft, open, onClose, senderAddress }: SendModalProps)
       }
       const mintPk = new PublicKey(nft.mint);
       const recipientPk = new PublicKey(r);
-      const tx = await buildNftTransferTransaction({
+      const { transaction: tx } = await buildNftTransferTransaction({
         connection,
         mint: mintPk,
         sender: pk,
@@ -185,15 +185,12 @@ export function SendModal({ nft, open, onClose, senderAddress }: SendModalProps)
               </DialogHeader>
               <div className="mt-2 flex gap-3 rounded-lg border border-border-subtle bg-surface/50 p-3">
                 <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md border border-border-subtle bg-black/40">
-                  {nft.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={nft.image}
-                      alt=""
-                      referrerPolicy="no-referrer"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : null}
+                  <NftImage
+                    src={nft.image}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    emptyClassName="h-full w-full min-h-0"
+                  />
                 </div>
                 <div className="min-w-0">
                   <p className="truncate font-semibold">{nft.name}</p>
@@ -203,16 +200,13 @@ export function SendModal({ nft, open, onClose, senderAddress }: SendModalProps)
                 </div>
               </div>
               <div className="grid gap-2 py-3">
-                <Label htmlFor="recv">Recipient wallet address</Label>
-                <Input
+                <RecipientAddressField
                   id="recv"
-                  className="font-mono text-xs"
+                  label="Recipient wallet address"
                   placeholder="e.g. ABC…xyz (Solana public key)"
                   value={recipient}
-                  onChange={(e) => {
-                    setRecipient(e.target.value);
-                    setError(null);
-                  }}
+                  onChange={setRecipient}
+                  onClearError={() => setError(null)}
                 />
                 {!nft.compressed ? (
                   <p className="text-xs text-muted-foreground">

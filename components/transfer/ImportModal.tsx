@@ -22,6 +22,7 @@ import { useBatchSend } from "@/hooks/useBatchSend";
 import { Loader2 } from "lucide-react";
 import type { NFT } from "@/types";
 import { cn } from "@/lib/utils";
+import { NftImage } from "@/components/nft/NftImage";
 
 function validateRecipient(input: string): string | null {
   const t = input.trim();
@@ -194,15 +195,12 @@ export function ImportModal() {
                         )}
                       >
                         <div className="aspect-square bg-black/40">
-                          {n.image ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={n.image}
-                              alt=""
-                              referrerPolicy="no-referrer"
-                              className="h-full w-full object-cover"
-                            />
-                          ) : null}
+                          <NftImage
+                            src={n.image}
+                            alt=""
+                            className="h-full w-full object-cover"
+                            emptyClassName="h-full w-full min-h-0 text-[8px]"
+                          />
                         </div>
                         <div className="truncate p-1">{n.name}</div>
                       </button>

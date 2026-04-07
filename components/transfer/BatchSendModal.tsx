@@ -14,8 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { RecipientAddressField } from "@/components/transfer/RecipientAddressField";
 import { useBatchSend } from "@/hooks/useBatchSend";
 import { useWalletStore } from "@/store/walletStore";
 import { Loader2 } from "lucide-react";
@@ -100,7 +99,7 @@ export function BatchSendModal({ open, onClose, senderAddress }: BatchSendModalP
         setError("No NFTs to send");
         return;
       }
-      const vtx = await buildVersionedBatchForMints({
+      const { transaction: vtx } = await buildVersionedBatchForMints({
         connection,
         mints: firstBatch,
         sender: pk,
@@ -172,18 +171,13 @@ export function BatchSendModal({ open, onClose, senderAddress }: BatchSendModalP
                 <p className="text-sm text-muted-foreground">
                   Selected: <span className="font-mono text-foreground">{selected.length}</span> NFT(s)
                 </p>
-                <div className="grid gap-2">
-                  <Label htmlFor="batch-recv">Recipient</Label>
-                  <Input
-                    id="batch-recv"
-                    className="font-mono text-xs"
-                    value={recipient}
-                    onChange={(e) => {
-                      setRecipient(e.target.value);
-                      setError(null);
-                    }}
-                  />
-                </div>
+                <RecipientAddressField
+                  id="batch-recv"
+                  label="Recipient"
+                  value={recipient}
+                  onChange={setRecipient}
+                  onClearError={() => setError(null)}
+                />
                 {error ? <p className="text-sm text-red-400">{error}</p> : null}
               </div>
               <DialogFooter>

@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RecipientAddressField } from "@/components/transfer/RecipientAddressField";
 import { useSendSplToken } from "@/hooks/useSendSplToken";
 import {
   buildFungibleSplTransferTransaction,
@@ -103,7 +104,7 @@ export function SendSplModal({ token, open, onClose, senderAddress }: SendSplMod
       const mintPk = new PublicKey(token.mint);
       const recipientPk = new PublicKey(recipient.trim());
       const amountRaw = parseTokenAmountToRaw(a, token.decimals);
-      const tx = await buildFungibleSplTransferTransaction({
+      const { transaction: tx } = await buildFungibleSplTransferTransaction({
         connection,
         mint: mintPk,
         sender: pk,
@@ -190,19 +191,13 @@ export function SendSplModal({ token, open, onClose, senderAddress }: SendSplMod
                     }}
                   />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="spl-recv">Recipient</Label>
-                  <Input
-                    id="spl-recv"
-                    className="font-mono text-xs"
-                    placeholder="Wallet address"
-                    value={recipient}
-                    onChange={(e) => {
-                      setRecipient(e.target.value);
-                      setError(null);
-                    }}
-                  />
-                </div>
+                <RecipientAddressField
+                  id="spl-recv"
+                  label="Recipient"
+                  value={recipient}
+                  onChange={setRecipient}
+                  onClearError={() => setError(null)}
+                />
                 {error ? <p className="text-sm text-red-400">{error}</p> : null}
               </div>
               <DialogFooter>
